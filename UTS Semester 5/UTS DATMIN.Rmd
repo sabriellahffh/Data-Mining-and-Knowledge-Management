@@ -1,0 +1,108 @@
+---
+title: "UTS DATMIN"
+author: "Sabriella Hafifah"
+date: "October 27, 2020"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Library
+```{r}
+library(OneR)
+library(caret)
+library(psych)
+```
+
+#Load Data
+```{r}
+library(readxl)
+data <- read_excel("C:/Users/SABRIELLA/Downloads/2014 and 2015 CSM dataset.xlsx")
+str(data)
+summary(data)
+```
+
+#Preprocessing
+```{r}
+#Buat kategori untuk beberapa variabel yang akan digunakan
+data$grup_rate <- cut(data$Ratings, breaks = c(0, 3, 7, 10), labels = c("Rendah", "Sedang", "Tinggi"))
+data$Genre <- as.factor(data$Genre)
+data$Sequel <- as.factor(data$Sequel)
+data$grp_budget <- ifelse(data$Budget > 28000000, 1, 0)
+data$grp_screens <- ifelse(data$Screens >2777, 1, 0)
+data$grp_views <- ifelse(data$Views > 2409338, 1, 0)
+data$grp_likes <- ifelse(data$Likes > 6096, 1, 0)
+data$grp_dislikes <- ifelse(data$Dislikes > 342, 1, 0)
+data$grp_komen <- ifelse(data$Comments > 837, 1, 0)
+
+myData <- data.frame(data$grup_rate, data$Genre, data$Sequel, data$grp_budget, data$grp_screens, data$grp_views, data$grp_dislikes, data$grp_likes, data$grp_komen)
+str(myData)
+``` 
+
+# Mengubah tipe variabel menjadi factor
+```{r}
+for(i in names(myData)){
+  myData[ ,i] <- as.factor(myData[ ,i])
+}
+str(myData)
+```
+
+#Split Data
+Memecah data menjadi data training(80% dari data awal) dan data test (20% dari data awal)
+```{r}
+set.seed(1233)
+sampel <- sample(2,nrow(myData), replace = TRUE, prob = c(0.8,0.2))
+trainData <- myData[sampel==1, ]
+testingData<- myData[sampel==2, ]
+print(paste("Jumlah Train Data: ", nrow(trainData), "| Jumlah Test Data: ", nrow(testingData)))
+```
+
+# Membuat Model
+```{r}
+modelOneR <- OneR(data.grup_rate~., data = trainData, verbose = TRUE)
+summary(modelOneR)
+```
+# OneR Model
+```{r}
+plot(modelOneR)
+```
+# Model Evaluation
+```{r}
+p1 <- predict(modelOneR, testingData, type = "class")
+eval_model(p1, testingData)
+confusionMatrix(p1, testingData$data.grup_rate)
+```
+
+#ZeroR
+```{r}
+# Hanya mengambil target class saja
+head(trainData)
+trainingdat <- trainData[,1]
+testingdat <- testingData[,1]
+trainingdat
+testingdat
+
+# Ambil banyak rendah, sedang, dan tinggi pada target class
+banyakRendah <- sum(trainingdat == "Rendah")
+banyakRendah
+
+banyakSedang <- sum(trainingdat == "Sedang")
+banyakSedang
+
+banyakTinggi <- sum(trainingdat == "Tinggi")
+banyakTinggi
+```
+
+### Hitung Peluang
+```{r}
+probRendah <- banyakRendah/length(trainingdat)
+probSedang <- banyakSedang/length(trainingdat)
+probTinggi <- banyakTinggi/length(trainingdat)
+print(paste("Peluang Rendah: ", probRendah, " | Peluang Sedang: ", probSedang, " | Peluang Tinggi: ", probTinggi))
+
+```
+
